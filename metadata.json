@@ -1,0 +1,6 @@
+{
+  "name": "Termux Smart Keyboard",
+  "description": "Offline-first Android Input Method (IME) keyboard engineered for Termux with smart command suggestions, shortcut keys, clipboard history, usage ranking, and custom command management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

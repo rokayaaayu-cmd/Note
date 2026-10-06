@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Termux Keyboard</string>
+    <string name="ime_name">Termux Smart Keyboard</string>
+    <string name="ime_subtype_en_us">English (Termux Terminal)</string>
+    <string name="related_commands_header">Related Commands</string>
+    <string name="recent_clipboard_header">RECENT</string>
+    <string name="most_used_related_header">MOST USED / RELATED</string>
+    <string name="enable_keyboard_btn">Enable Keyboard in Settings</string>
+    <string name="switch_keyboard_btn">Select Active Keyboard</string>
+    <string name="add_custom_command">Add Custom Command</string>
+    <string name="edit_custom_command">Edit Command</string>
+    <string name="delete_command">Delete Command</string>
+    <string name="search_commands_hint">Search commands, intents, or tags (e.g. install node)…</string>
+    <string name="sandbox_prompt_hint">Type here to test smart suggestions (e.g. install node, list files, opencode)…</string>
+    <string name="offline_privacy_badge">100% Offline • Local SQLite • Zero Telemetry</string>
+</resources>
