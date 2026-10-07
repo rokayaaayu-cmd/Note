@@ -10,7 +10,7 @@ class TermuxRepository(
     val mostUsedCommands: Flow<List<CommandEntity>> = commandDao.observeMostUsedCommands(12)
 
     val allClipboardItems: Flow<List<ClipboardEntity>> = clipboardDao.observeAllClipboardItems()
-    val recentThreeClipboard: Flow<List<ClipboardEntity>> = clipboardDao.observeRecentThree()
+    val recentFifteenClipboard: Flow<List<ClipboardEntity>> = clipboardDao.observeRecentFifteen()
     val mostUsedClipboard: Flow<List<ClipboardEntity>> = clipboardDao.observeMostUsedClipboard(10)
 
     suspend fun ensureSeeded(db: AppDatabase) {

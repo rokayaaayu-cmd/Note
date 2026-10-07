@@ -20,14 +20,14 @@ data class TermuxKeyboardUiState(
     val currentInputLine: String = "",
     val activeQuery: String = "",
     val relatedCommands: List<CommandEntity> = emptyList(),
-    val recentClipboardTop3: List<ClipboardEntity> = emptyList(),
+    val recentClipboardFifteen: List<ClipboardEntity> = emptyList(),
     val mostUsedAndRelated: List<RankedSuggestion> = emptyList(),
     val ctrlLatched: Boolean = false,
     val altLatched: Boolean = false,
     val shiftState: ShiftState = ShiftState.OFF,
     val isSymbolLayer: Boolean = false,
     val oneHandedMode: OneHandedMode = OneHandedMode.FULL,
-    val isBottomVaultExpanded: Boolean = true
+    val isBottomVaultExpanded: Boolean = false
 )
 
 interface KeyboardActionHandler {
@@ -42,6 +42,7 @@ interface KeyboardActionHandler {
     fun onToggleSymbolLayer()
     fun onCycleOneHandedMode()
     fun onToggleBottomVault()
+    fun onSetBottomVaultExpanded(expanded: Boolean) {}
     fun onSelectCommandSuggestion(command: CommandEntity)
     fun onSelectClipboardItem(item: ClipboardEntity)
     fun onSelectRankedSuggestion(suggestion: RankedSuggestion)

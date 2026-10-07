@@ -75,7 +75,7 @@ import com.example.ui.theme.TextSecondary
 
 @Composable
 fun ClipboardVaultScreen(
-    recentThree: List<ClipboardEntity>,
+    recentFifteen: List<ClipboardEntity>,
     allClipboardItems: List<ClipboardEntity>,
     onInsertClip: (ClipboardEntity) -> Unit,
     onCopyClip: (String, String) -> Unit,
@@ -202,7 +202,7 @@ fun ClipboardVaultScreen(
                                 modifier = Modifier.size(15.dp)
                             )
                             Text(
-                                text = "RECENT (TOP 3 COPIED ITEMS)",
+                                text = "RECENT (15 COPIES ON KEYBOARD SWIPE-UP)",
                                 fontFamily = SpaceGroteskFamily,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
@@ -210,14 +210,14 @@ fun ClipboardVaultScreen(
                             )
                         }
                         Text(
-                            text = "Shown on keyboard deck",
+                            text = "Swipe up on keyboard",
                             fontFamily = JetBrainsMonoFamily,
                             fontSize = 10.sp,
                             color = TextMuted
                         )
                     }
 
-                    recentThree.take(3).forEachIndexed { index, item ->
+                    recentFifteen.take(15).forEachIndexed { index, item ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -249,7 +249,7 @@ fun ClipboardVaultScreen(
                                 )
                             }
                             Text(
-                                text = "TAP TO INSERT",
+                                text = "COPY",
                                 fontFamily = JetBrainsMonoFamily,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 9.sp,

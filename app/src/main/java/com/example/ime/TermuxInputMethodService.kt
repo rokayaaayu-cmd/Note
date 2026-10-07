@@ -80,7 +80,7 @@ class TermuxInputMethodService :
         val shiftState: ShiftState = ShiftState.OFF,
         val isSymbolLayer: Boolean = false,
         val oneHandedMode: OneHandedMode = OneHandedMode.FULL,
-        val isBottomVaultExpanded: Boolean = true
+        val isBottomVaultExpanded: Boolean = false
     )
 
     private lateinit var keyboardUiState: StateFlow<TermuxKeyboardUiState>
@@ -110,9 +110,9 @@ class TermuxInputMethodService :
             currentLineFlow,
             repository.allCommands,
             repository.allClipboardItems,
-            repository.recentThreeClipboard,
+            repository.recentFifteenClipboard,
             modifiersFlow
-        ) { line, allCommands, allClips, recent3, mods ->
+        ) { line, allCommands, allClips, recent15, mods ->
             val activeQuery = SmartSuggestionEngine.extractActiveQuery(line)
             val relatedCmds = SmartSuggestionEngine.rankCommandSuggestions(line, allCommands, limit = 10)
             val mostUsedAndRelated = SmartSuggestionEngine.rankMostUsedAndRelated(
@@ -125,7 +125,7 @@ class TermuxInputMethodService :
                 currentInputLine = line,
                 activeQuery = activeQuery,
                 relatedCommands = relatedCmds,
-                recentClipboardTop3 = recent3,
+                recentClipboardFifteen = recent15,
                 mostUsedAndRelated = mostUsedAndRelated,
                 ctrlLatched = mods.ctrlLatched,
                 altLatched = mods.altLatched,
@@ -358,21 +358,22 @@ class TermuxInputMethodService :
         modifiersFlow.update { it.copy(isBottomVaultExpanded = !it.isBottomVaultExpanded) }
     }
 
+    override fun onSetBottomVaultExpanded(expanded: Boolean) {
+        modifiersFlow.update { it.copy(isBottomVaultExpanded = expanded) }
+    }
+
     override fun onSwitchInputMethod() {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val switched = switchToNextInputMethod(false)
-                if (!switched) {
-                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                    imm?.showInputMethodPicker()
-                }
-            } else {
-                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                imm?.showInputMethodPicker()
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            if (imm != null) {
+                imm.showInputMethodPicker()
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                switchToNextInputMethod(false)
             }
         } catch (_: Exception) {
-            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-            imm?.showInputMethodPicker()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                switchToNextInputMethod(false)
+            }
         }
     }
 

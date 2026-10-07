@@ -11,8 +11,8 @@ interface ClipboardDao {
     @Query("SELECT * FROM clipboard_items ORDER BY copiedTimestamp DESC")
     fun observeAllClipboardItems(): Flow<List<ClipboardEntity>>
 
-    @Query("SELECT * FROM clipboard_items ORDER BY copiedTimestamp DESC LIMIT 3")
-    fun observeRecentThree(): Flow<List<ClipboardEntity>>
+    @Query("SELECT * FROM clipboard_items ORDER BY copiedTimestamp DESC LIMIT 15")
+    fun observeRecentFifteen(): Flow<List<ClipboardEntity>>
 
     @Query("SELECT * FROM clipboard_items WHERE usageCount > 0 ORDER BY usageCount DESC, lastUsedTimestamp DESC LIMIT :limit")
     fun observeMostUsedClipboard(limit: Int = 8): Flow<List<ClipboardEntity>>

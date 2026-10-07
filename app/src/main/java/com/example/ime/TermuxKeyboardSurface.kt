@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -21,12 +22,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -35,11 +38,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,7 +65,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.ClipboardEntity
 import com.example.data.CommandEntity
-import com.example.data.RankedSuggestion
 import com.example.ui.theme.AmberAlert
 import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.ElectricCyanContainer
@@ -114,7 +116,7 @@ fun TermuxKeyboardSurface(
             .fillMaxWidth()
             .testTag("termux_keyboard_surface"),
         color = TerminalBg,
-        tonalElevation = 10.dp
+        tonalElevation = 8.dp
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -137,10 +139,6 @@ fun TermuxKeyboardSurface(
             ) {
                 // =========================================================================
                 // 1. RELATED COMMANDS BAR
-                // ┌──────────────────────────────────┐
-                // │ Related Commands                 │
-                // │ ls -la | cd | pwd | git status   │
-                // └──────────────────────────────────┘
                 // =========================================================================
                 RelatedCommandsBar(
                     activeQuery = state.activeQuery,
@@ -162,13 +160,10 @@ fun TermuxKeyboardSurface(
                     onOpenApp = onOpenFullAppClick
                 )
 
-                SubtleDivider()
+                ThinDivider()
 
                 // =========================================================================
-                // 2. TERMUX SHORTCUT KEYS BAR
-                // ├──────────────────────────────────┤
-                // │ CTRL ALT ESC TAB ↑ ↓ ← → ~ | &&  │
-                // └──────────────────────────────────┘
+                // 2. TERMUX SHORTCUT KEYS BAR (CTRL ALT ESC TAB ↑ ↓ ← → / ~ | && > < - _)
                 // =========================================================================
                 TermuxShortcutRow(
                     ctrlLatched = state.ctrlLatched,
@@ -183,13 +178,10 @@ fun TermuxKeyboardSurface(
                     }
                 )
 
-                SubtleDivider()
+                ThinDivider()
 
                 // =========================================================================
-                // 3. NORMAL KEYBOARD (QWERTY / SYMBOLS)
-                // ├──────────────────────────────────┤
-                // │         Normal Keyboard          │
-                // └──────────────────────────────────┘
+                // 3. NORMAL KEYBOARD (Fast QWERTY + Symbols + 1-Tap Switch IME Key)
                 // =========================================================================
                 NormalQwertyKeyboard(
                     shiftState = state.shiftState,
@@ -223,41 +215,55 @@ fun TermuxKeyboardSurface(
                     onEnter = {
                         performTick()
                         handler.onEnter()
+                    },
+                    onSwipeUpFromBottom = {
+                        performTick()
+                        handler.onSetBottomVaultExpanded(true)
                     }
                 )
 
+                ThinDivider()
+
                 // =========================================================================
-                // 4 & 5. RECENT (Top 3 Clipboard) + MOST USED / RELATED
-                // ├──────────────────────────────────┤
-                // │ RECENT                           │
-                // │ 1. latest copied item            │
-                // │ 2. second copied item            │
-                // │ 3. third copied item             │
-                // ├──────────────────────────────────┤
-                // │ MOST USED / RELATED              │
-                // │ pkg update                       │
-                // │ git status                       │
-                // │ cd ~/projects                    │
-                // └──────────────────────────────────┘
+                // 4. BOTTOM SWIPE-UP HANDLE & TWO-COLUMN PANEL:
+                //    - Column 1: RELATED (3 related Termux commands with typed words)
+                //    - Column 2: RECENT (Scrolling down 15 recent copies)
                 // =========================================================================
+                BottomSwipeUpHandleBar(
+                    isExpanded = state.isBottomVaultExpanded,
+                    activeQuery = state.activeQuery,
+                    onSwipeUp = {
+                        performTick()
+                        handler.onSetBottomVaultExpanded(true)
+                    },
+                    onSwipeDown = {
+                        performTick()
+                        handler.onSetBottomVaultExpanded(false)
+                    },
+                    onToggleClick = {
+                        performTick()
+                        handler.onToggleBottomVault()
+                    }
+                )
+
                 AnimatedVisibility(
                     visible = state.isBottomVaultExpanded,
                     enter = expandVertically(animationSpec = tween(180)),
                     exit = shrinkVertically(animationSpec = tween(180))
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        SubtleDivider()
-                        RecentAndMostUsedDeck(
+                        ThinDivider()
+                        SwipeUpTwoColumnDrawer(
                             activeQuery = state.activeQuery,
-                            recentThree = state.recentClipboardTop3,
-                            mostUsedAndRelated = state.mostUsedAndRelated,
-                            onClipboardItemClick = { item ->
+                            relatedThreeCommands = state.relatedCommands.take(3),
+                            recentFifteenCopies = state.recentClipboardFifteen.take(15),
+                            onCommandClick = { cmd ->
                                 performTick()
-                                handler.onSelectClipboardItem(item)
+                                handler.onSelectCommandSuggestion(cmd)
                             },
-                            onRankedSuggestionClick = { item ->
+                            onClipboardItemClick = { clip ->
                                 performTick()
-                                handler.onSelectRankedSuggestion(item)
+                                handler.onSelectClipboardItem(clip)
                             }
                         )
                     }
@@ -278,6 +284,270 @@ fun TermuxKeyboardSurface(
 }
 
 @Composable
+private fun BottomSwipeUpHandleBar(
+    isExpanded: Boolean,
+    activeQuery: String,
+    onSwipeUp: () -> Unit,
+    onSwipeDown: () -> Unit,
+    onToggleClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(TerminalSurface)
+            .pointerInput(isExpanded) {
+                var totalDragY = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { totalDragY = 0f },
+                    onVerticalDrag = { change, dragAmount ->
+                        change.consume()
+                        totalDragY += dragAmount
+                        if (totalDragY < -14f && !isExpanded) {
+                            onSwipeUp()
+                            totalDragY = 0f
+                        } else if (totalDragY > 14f && isExpanded) {
+                            onSwipeDown()
+                            totalDragY = 0f
+                        }
+                    }
+                )
+            }
+            .clickable(onClick = onToggleClick)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .testTag("bottom_swipe_up_handle"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+            contentDescription = if (isExpanded) "Swipe down to close" else "Swipe up for Related & Recent",
+            tint = if (isExpanded) AmberAlert else TermuxGreen,
+            modifier = Modifier.size(15.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = if (isExpanded) {
+                "Swipe down to close • Related (3) & Recent (15)"
+            } else if (activeQuery.isNotBlank()) {
+                "Swipe up ▲ Related for \"$activeQuery\" (3) & Recent (15)"
+            } else {
+                "Swipe up ▲ Related Commands (3) & Recent Copies (15)"
+            },
+            fontFamily = SpaceGroteskFamily,
+            fontWeight = FontWeight.Bold,
+            fontSize = 10.sp,
+            color = if (isExpanded) AmberAlert else TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/**
+ * Two-Column Swipe-Up Panel:
+ * - Left Column: RELATED (3 related Termux commands matching the currently typed words)
+ * - Right Column: RECENT (Vertically scrolling list of 15 most recently copied items)
+ */
+@Composable
+private fun SwipeUpTwoColumnDrawer(
+    activeQuery: String,
+    relatedThreeCommands: List<CommandEntity>,
+    recentFifteenCopies: List<ClipboardEntity>,
+    onCommandClick: (CommandEntity) -> Unit,
+    onClipboardItemClick: (ClipboardEntity) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(164.dp)
+            .background(TerminalSurface)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // =========================================================================
+        // COLUMN 1: RELATED (3 Related Termux Commands with Typed Words)
+        // =========================================================================
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .testTag("most_used_related_section"),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = if (activeQuery.isNotBlank()) {
+                        "RELATED (\"$activeQuery\")"
+                    } else {
+                        "RELATED (3 COMMANDS)"
+                    },
+                    fontFamily = SpaceGroteskFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    color = TermuxGreen,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Column(
+                modifier = Modifier.fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                relatedThreeCommands.take(3).forEachIndexed { idx, cmd ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (idx == 0 && activeQuery.isNotBlank()) TermuxGreenContainer else TerminalSurfaceElevated)
+                            .border(
+                                width = 1.dp,
+                                color = if (idx == 0 && activeQuery.isNotBlank()) TermuxGreen else TerminalBorder,
+                                shape = RoundedCornerShape(6.dp)
+                            )
+                            .clickable { onCommandClick(cmd) }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .testTag("related_drawer_cmd_$idx"),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "${idx + 1}.",
+                                fontFamily = JetBrainsMonoFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                color = TermuxGreen
+                            )
+                            Text(
+                                text = cmd.command.trim(),
+                                fontFamily = JetBrainsMonoFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Text(
+                            text = cmd.name,
+                            fontFamily = SpaceGroteskFamily,
+                            fontSize = 9.sp,
+                            color = TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+
+        // Vertical Divider between RELATED and RECENT columns
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .fillMaxHeight()
+                .background(TerminalBorder)
+        )
+
+        // =========================================================================
+        // COLUMN 2: RECENT (Scrolling Down 15 Recent Copies)
+        // =========================================================================
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .testTag("recent_clipboard_section"),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "RECENT (${recentFifteenCopies.size}/15)",
+                    fontFamily = SpaceGroteskFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    color = ElectricCyan
+                )
+                Text(
+                    text = "SCROLL ↓",
+                    fontFamily = JetBrainsMonoFamily,
+                    fontSize = 8.sp,
+                    color = TextMuted
+                )
+            }
+
+            if (recentFifteenCopies.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Copy text in Termux to save up to 15 recent items here.",
+                        fontFamily = JetBrainsMonoFamily,
+                        fontSize = 10.sp,
+                        color = TextMuted
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                        .testTag("recent_15_scroll_list"),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    contentPadding = PaddingValues(bottom = 6.dp)
+                ) {
+                    itemsIndexed(
+                        items = recentFifteenCopies.take(15),
+                        key = { idx, clip -> "recent15_${clip.id}_$idx" }
+                    ) { idx, clip ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(5.dp))
+                                .background(TerminalSurfaceElevated)
+                                .border(1.dp, TerminalBorder, RoundedCornerShape(5.dp))
+                                .clickable { onClipboardItemClick(clip) }
+                                .padding(horizontal = 7.dp, vertical = 5.dp)
+                                .testTag("recent_clip_item_$idx"),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${idx + 1}. ",
+                                fontFamily = JetBrainsMonoFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                color = ElectricCyan
+                            )
+                            Text(
+                                text = clip.text.replace("\n", " ↵ "),
+                                fontFamily = JetBrainsMonoFamily,
+                                fontSize = 11.sp,
+                                color = TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun RelatedCommandsBar(
     activeQuery: String,
     suggestions: List<CommandEntity>,
@@ -292,10 +562,9 @@ private fun RelatedCommandsBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(TerminalSurface)
-            .padding(horizontal = 8.dp, vertical = 5.dp)
+            .padding(horizontal = 6.dp, vertical = 3.dp)
             .testTag("related_commands_section")
     ) {
-        // Header Row: "Related Commands" + Simple Controls
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -303,20 +572,20 @@ private fun RelatedCommandsBar(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Text(
                     text = "Related Commands",
                     fontFamily = SpaceGroteskFamily,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     color = TextSecondary
                 )
                 if (activeQuery.isNotBlank()) {
                     Text(
                         text = "• \"$activeQuery\"",
                         fontFamily = JetBrainsMonoFamily,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         fontSize = 10.sp,
                         color = TermuxGreen,
                         maxLines = 1,
@@ -328,10 +597,9 @@ private fun RelatedCommandsBar(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // One-Handed Ergonomic Toggle
-                SmallToolbarChip(
+                SmallUtilityPill(
                     label = when (oneHandedMode) {
                         OneHandedMode.FULL -> "1-Hand"
                         OneHandedMode.LEFT -> "◀ Left"
@@ -342,10 +610,9 @@ private fun RelatedCommandsBar(
                     testTag = "one_handed_mode_button"
                 )
 
-                // Toggle Clipboard & Most-Used Bottom Deck
-                SmallToolbarChip(
-                    label = if (isBottomVaultExpanded) "Hide Panel" else "Clipboard",
-                    isActive = !isBottomVaultExpanded,
+                SmallUtilityPill(
+                    label = if (isBottomVaultExpanded) "Recent ▼" else "Recent ▲",
+                    isActive = isBottomVaultExpanded,
                     onClick = onToggleVault,
                     testTag = "toggle_vault_button"
                 )
@@ -353,27 +620,26 @@ private fun RelatedCommandsBar(
                 if (onOpenApp != null) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(5.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .background(TerminalKeySurface)
                             .clickable(onClick = onOpenApp)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
                             .testTag("open_companion_app_button"),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Tune,
-                            contentDescription = "Open Termux Keyboard Settings",
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Open Keyboard App Data & Settings",
                             tint = TermuxGreen,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
-        // Suggestion Chips Row: ls -la | cd | pwd | git status
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
@@ -386,17 +652,15 @@ private fun RelatedCommandsBar(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(7.dp))
-                            .background(
-                                if (isTopMatch) TermuxGreen else TerminalSurfaceElevated
-                            )
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isTopMatch) TermuxGreen else TerminalSurfaceElevated)
                             .border(
                                 width = 1.dp,
                                 color = if (isTopMatch) TermuxGreen else TerminalBorder,
-                                shape = RoundedCornerShape(7.dp)
+                                shape = RoundedCornerShape(6.dp)
                             )
                             .clickable { onCommandClick(cmd) }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .padding(horizontal = 9.dp, vertical = 4.dp)
                             .testTag("related_cmd_chip_$index")
                     ) {
                         Text(
@@ -412,9 +676,8 @@ private fun RelatedCommandsBar(
                         Text(
                             text = " | ",
                             fontFamily = JetBrainsMonoFamily,
-                            fontSize = 12.sp,
-                            color = TextMuted,
-                            modifier = Modifier.padding(horizontal = 2.dp)
+                            fontSize = 11.sp,
+                            color = TextMuted
                         )
                     }
                 }
@@ -424,7 +687,7 @@ private fun RelatedCommandsBar(
 }
 
 @Composable
-private fun SmallToolbarChip(
+private fun SmallUtilityPill(
     label: String,
     isActive: Boolean,
     onClick: () -> Unit,
@@ -432,17 +695,17 @@ private fun SmallToolbarChip(
 ) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(5.dp))
+            .clip(RoundedCornerShape(4.dp))
             .background(if (isActive) ElectricCyanContainer else TerminalKeySurface)
             .clickable(onClick = onClick)
-            .padding(horizontal = 7.dp, vertical = 2.dp)
+            .padding(horizontal = 6.dp, vertical = 1.5.dp)
             .testTag(testTag)
     ) {
         Text(
             text = label,
             fontFamily = SpaceGroteskFamily,
             fontWeight = FontWeight.Medium,
-            fontSize = 10.sp,
+            fontSize = 9.sp,
             color = if (isActive) ElectricCyan else TextSecondary
         )
     }
@@ -462,9 +725,9 @@ private fun TermuxShortcutRow(
             .fillMaxWidth()
             .background(TerminalSurfaceElevated)
             .horizontalScroll(scrollState)
-            .padding(horizontal = 6.dp, vertical = 5.dp)
+            .padding(horizontal = 5.dp, vertical = 4.dp)
             .testTag("termux_shortcut_bar"),
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         TermuxShortcutKey.entries.forEach { key ->
@@ -491,14 +754,14 @@ private fun TermuxShortcutRow(
             }
 
             val baseModifier = Modifier
-                .height(32.dp)
-                .widthIn(min = 38.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .height(29.dp)
+                .widthIn(min = 35.dp)
+                .clip(RoundedCornerShape(5.dp))
                 .background(bgColor)
                 .border(
                     width = 1.dp,
                     color = if (isLatched) TermuxGreen else TerminalBorder,
-                    shape = RoundedCornerShape(6.dp)
+                    shape = RoundedCornerShape(5.dp)
                 )
 
             val interactiveModifier = if (isRepeatableArrow) {
@@ -510,7 +773,7 @@ private fun TermuxShortcutRow(
                                 delay(350)
                                 while (true) {
                                     onShortcutClick(key)
-                                    delay(65)
+                                    delay(60)
                                 }
                             }
                             tryAwaitRelease()
@@ -524,7 +787,7 @@ private fun TermuxShortcutRow(
 
             Box(
                 modifier = interactiveModifier
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = 7.dp)
                     .testTag("shortcut_key_${key.name.lowercase()}"),
                 contentAlignment = Alignment.Center
             ) {
@@ -535,7 +798,7 @@ private fun TermuxShortcutRow(
                     if (key == TermuxShortcutKey.CTRL || key == TermuxShortcutKey.ALT) {
                         Box(
                             modifier = Modifier
-                                .size(5.dp)
+                                .size(4.dp)
                                 .clip(CircleShape)
                                 .background(if (isLatched) Color(0xFF00210E) else TextMuted)
                         )
@@ -565,7 +828,8 @@ private fun NormalQwertyKeyboard(
     onSymbolToggle: () -> Unit,
     onSwitchIme: () -> Unit,
     onSpace: () -> Unit,
-    onEnter: () -> Unit
+    onEnter: () -> Unit,
+    onSwipeUpFromBottom: () -> Unit
 ) {
     val rows = if (isSymbolLayer) symbolRows else qwertyRows
     val isUpper = shiftState != ShiftState.OFF && !isSymbolLayer
@@ -575,22 +839,22 @@ private fun NormalQwertyKeyboard(
         modifier = Modifier
             .fillMaxWidth()
             .background(TerminalBg)
-            .padding(horizontal = 4.dp, vertical = 5.dp)
+            .padding(horizontal = 4.dp, vertical = 4.dp)
             .testTag("normal_keyboard_section"),
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Row 0: Dedicated Number Row (1 - 0)
+        // Row 0: Number Row (1 - 0)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             rows[0].forEach { digit ->
                 TactileKeycap(
                     label = digit,
                     modifier = Modifier
                         .weight(1f)
-                        .height(33.dp),
-                    fontSizeSp = 13,
+                        .height(31.dp),
+                    fontSizeSp = 12,
                     backgroundColor = TerminalSurfaceElevated,
                     textColor = TextSecondary,
                     onClick = { onKeyPress(digit) }
@@ -601,7 +865,7 @@ private fun NormalQwertyKeyboard(
         // Row 1: Q - P
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             rows[1].forEach { rawKey ->
                 val label = if (isUpper) rawKey.uppercase() else rawKey
@@ -609,7 +873,7 @@ private fun NormalQwertyKeyboard(
                     label = label,
                     modifier = Modifier
                         .weight(1f)
-                        .height(40.dp),
+                        .height(38.dp),
                     fontSizeSp = 15,
                     onClick = { onKeyPress(label) }
                 )
@@ -620,8 +884,8 @@ private fun NormalQwertyKeyboard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = if (isSymbolLayer) 0.dp else 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(horizontal = if (isSymbolLayer) 0.dp else 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             rows[2].forEach { rawKey ->
                 val label = if (isUpper) rawKey.uppercase() else rawKey
@@ -629,7 +893,7 @@ private fun NormalQwertyKeyboard(
                     label = label,
                     modifier = Modifier
                         .weight(1f)
-                        .height(40.dp),
+                        .height(38.dp),
                     fontSizeSp = 15,
                     onClick = { onKeyPress(label) }
                 )
@@ -639,7 +903,7 @@ private fun NormalQwertyKeyboard(
         // Row 3: Shift + Z - M + Backspace
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (!isSymbolLayer) {
@@ -652,9 +916,9 @@ private fun NormalQwertyKeyboard(
                     },
                     modifier = Modifier
                         .weight(1.4f)
-                        .height(40.dp)
+                        .height(38.dp)
                         .testTag("key_shift"),
-                    fontSizeSp = 16,
+                    fontSizeSp = 15,
                     backgroundColor = if (shiftActive) TermuxGreen else TerminalKeyModifier,
                     textColor = if (shiftActive) Color(0xFF00210E) else TextPrimary,
                     onClick = onShiftClick
@@ -667,7 +931,7 @@ private fun NormalQwertyKeyboard(
                     label = label,
                     modifier = Modifier
                         .weight(1f)
-                        .height(40.dp),
+                        .height(38.dp),
                     fontSizeSp = 15,
                     onClick = { onKeyPress(label) }
                 )
@@ -677,10 +941,10 @@ private fun NormalQwertyKeyboard(
             Box(
                 modifier = Modifier
                     .weight(1.4f)
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(7.dp))
+                    .height(38.dp)
+                    .clip(RoundedCornerShape(6.dp))
                     .background(TerminalKeyModifier)
-                    .border(1.dp, TerminalBorder, RoundedCornerShape(7.dp))
+                    .border(1.dp, TerminalBorder, RoundedCornerShape(6.dp))
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onPress = {
@@ -704,37 +968,51 @@ private fun NormalQwertyKeyboard(
                     imageVector = Icons.AutoMirrored.Filled.Backspace,
                     contentDescription = "Backspace",
                     tint = TextPrimary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(17.dp)
                 )
             }
         }
 
-        // Row 4: ?123 | Globe | / | Spacebar | . | Enter
+        // Row 4: ?123 | Switch Keyboard (Globe) | / | Spacebar (also supports swipe up!) | - | Enter
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) {
+                    var dragY = 0f
+                    detectVerticalDragGestures(
+                        onDragStart = { dragY = 0f },
+                        onVerticalDrag = { _, dragAmount ->
+                            dragY += dragAmount
+                            if (dragY < -18f) {
+                                onSwipeUpFromBottom()
+                                dragY = 0f
+                            }
+                        }
+                    )
+                },
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TactileKeycap(
                 label = if (isSymbolLayer) "ABC" else "?123",
                 modifier = Modifier
-                    .weight(1.25f)
-                    .height(40.dp)
+                    .weight(1.2f)
+                    .height(38.dp)
                     .testTag("key_symbol_toggle"),
-                fontSizeSp = 12,
+                fontSizeSp = 11,
                 backgroundColor = TerminalKeyModifier,
                 textColor = ElectricCyan,
                 onClick = onSymbolToggle
             )
 
-            // Switch Keyboard (Globe) button
+            // Switch Keyboard (Globe) button - allows instant switching with existing mobile keyboard
             Box(
                 modifier = Modifier
-                    .weight(0.9f)
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(7.dp))
+                    .weight(0.95f)
+                    .height(38.dp)
+                    .clip(RoundedCornerShape(6.dp))
                     .background(TerminalKeyModifier)
-                    .border(1.dp, TerminalBorder, RoundedCornerShape(7.dp))
+                    .border(1.dp, TerminalBorder, RoundedCornerShape(6.dp))
                     .clickable(onClick = onSwitchIme)
                     .testTag("key_switch_ime"),
                 contentAlignment = Alignment.Center
@@ -742,7 +1020,7 @@ private fun NormalQwertyKeyboard(
                 Icon(
                     imageVector = Icons.Default.Language,
                     contentDescription = "Switch Keyboard",
-                    tint = TextSecondary,
+                    tint = ElectricCyan,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -751,8 +1029,8 @@ private fun NormalQwertyKeyboard(
                 label = "/",
                 modifier = Modifier
                     .weight(0.85f)
-                    .height(40.dp),
-                fontSizeSp = 15,
+                    .height(38.dp),
+                fontSizeSp = 14,
                 backgroundColor = TerminalKeyModifier,
                 onClick = { onKeyPress("/") }
             )
@@ -767,13 +1045,13 @@ private fun NormalQwertyKeyboard(
             Box(
                 modifier = Modifier
                     .weight(3.6f)
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(7.dp))
+                    .height(38.dp)
+                    .clip(RoundedCornerShape(6.dp))
                     .background(spaceBg)
                     .border(
                         width = 1.dp,
                         color = if (ctrlLatched || altLatched) TermuxGreen else TerminalBorder,
-                        shape = RoundedCornerShape(7.dp)
+                        shape = RoundedCornerShape(6.dp)
                     )
                     .clickable(
                         interactionSource = spaceInteraction,
@@ -802,8 +1080,8 @@ private fun NormalQwertyKeyboard(
                 label = "-",
                 modifier = Modifier
                     .weight(0.85f)
-                    .height(40.dp),
-                fontSizeSp = 15,
+                    .height(38.dp),
+                fontSizeSp = 14,
                 backgroundColor = TerminalKeyModifier,
                 onClick = { onKeyPress("-") }
             )
@@ -818,10 +1096,10 @@ private fun NormalQwertyKeyboard(
             )
             Box(
                 modifier = Modifier
-                    .weight(1.45f)
-                    .height(40.dp)
+                    .weight(1.4f)
+                    .height(38.dp)
                     .scale(enterScale)
-                    .clip(RoundedCornerShape(7.dp))
+                    .clip(RoundedCornerShape(6.dp))
                     .background(TermuxGreen)
                     .clickable(
                         interactionSource = enterInteraction,
@@ -835,7 +1113,7 @@ private fun NormalQwertyKeyboard(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
                     contentDescription = "Enter",
                     tint = Color(0xFF00210E),
-                    modifier = Modifier.size(19.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
@@ -860,7 +1138,7 @@ private fun TactileKeycap(
     )
     val animatedBg by animateColorAsState(
         targetValue = if (isPressed) TermuxGreen.copy(alpha = 0.25f) else backgroundColor,
-        animationSpec = tween(60),
+        animationSpec = tween(50),
         label = "keyBg"
     )
     val borderColor = if (isPressed) TermuxGreen else TerminalBorder
@@ -868,9 +1146,9 @@ private fun TactileKeycap(
     Box(
         modifier = modifier
             .scale(scale)
-            .clip(RoundedCornerShape(7.dp))
+            .clip(RoundedCornerShape(6.dp))
             .background(animatedBg)
-            .border(1.dp, borderColor, RoundedCornerShape(7.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(6.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -890,194 +1168,14 @@ private fun TactileKeycap(
 }
 
 @Composable
-private fun RecentAndMostUsedDeck(
-    activeQuery: String,
-    recentThree: List<ClipboardEntity>,
-    mostUsedAndRelated: List<RankedSuggestion>,
-    onClipboardItemClick: (ClipboardEntity) -> Unit,
-    onRankedSuggestionClick: (RankedSuggestion) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(TerminalSurface)
-            .padding(horizontal = 8.dp, vertical = 5.dp)
-    ) {
-        // =========================================================================
-        // 4. RECENT (3 Most Recently Copied Items)
-        // ├──────────────────────────────────┤
-        // │ RECENT                           │
-        // │ 1. latest copied item            │
-        // │ 2. second copied item            │
-        // │ 3. third copied item             │
-        // =========================================================================
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("recent_clipboard_section"),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "RECENT",
-                fontFamily = SpaceGroteskFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-                color = ElectricCyan,
-                letterSpacing = 0.6.sp
-            )
-            Text(
-                text = "Tap to insert",
-                fontFamily = SpaceGroteskFamily,
-                fontSize = 9.sp,
-                color = TextMuted
-            )
-        }
-
-        Spacer(modifier = Modifier.height(3.dp))
-
-        if (recentThree.isEmpty()) {
-            Text(
-                text = "1. (Copy any text in Termux to appear here)",
-                fontFamily = JetBrainsMonoFamily,
-                fontSize = 11.sp,
-                color = TextMuted,
-                modifier = Modifier.padding(vertical = 2.dp)
-            )
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                recentThree.take(3).forEachIndexed { idx, clip ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(TerminalSurfaceElevated)
-                            .clickable { onClipboardItemClick(clip) }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                            .testTag("recent_clip_item_$idx"),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${idx + 1}. ",
-                            fontFamily = JetBrainsMonoFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            color = ElectricCyan
-                        )
-                        Text(
-                            text = clip.text.replace("\n", " ↵ "),
-                            fontFamily = JetBrainsMonoFamily,
-                            fontSize = 11.sp,
-                            color = TextPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(5.dp))
-        SubtleDivider()
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // =========================================================================
-        // 5. MOST USED / RELATED
-        // ├──────────────────────────────────┤
-        // │ MOST USED / RELATED              │
-        // │ pkg update                       │
-        // │ git status                       │
-        // │ cd ~/projects                    │
-        // └──────────────────────────────────┘
-        // =========================================================================
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("most_used_related_section"),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = if (activeQuery.isNotBlank()) {
-                    "MOST USED / RELATED (\"$activeQuery\")"
-                } else {
-                    "MOST USED / RELATED"
-                },
-                fontFamily = SpaceGroteskFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-                color = AmberAlert,
-                letterSpacing = 0.6.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = if (activeQuery.isNotBlank()) "Matching history" else "By frequency",
-                fontFamily = SpaceGroteskFamily,
-                fontSize = 9.sp,
-                color = TextMuted
-            )
-        }
-
-        Spacer(modifier = Modifier.height(3.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            mostUsedAndRelated.take(3).forEachIndexed { idx, item ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(TerminalSurfaceElevated)
-                        .clickable { onRankedSuggestionClick(item) }
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .testTag("most_used_item_$idx"),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = item.displayLabel.replace("\n", " ↵ "),
-                        fontFamily = JetBrainsMonoFamily,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 11.sp,
-                        color = if (item.isClipboard) ElectricCyan else TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    if (item.isClipboard) {
-                        Text(
-                            text = "CLIP",
-                            fontFamily = JetBrainsMonoFamily,
-                            fontSize = 9.sp,
-                            color = ElectricCyan,
-                            modifier = Modifier.padding(start = 6.dp)
-                        )
-                    } else if (item.usageCount > 0) {
-                        Text(
-                            text = "×${item.usageCount}",
-                            fontFamily = JetBrainsMonoFamily,
-                            fontSize = 9.sp,
-                            color = TextMuted,
-                            modifier = Modifier.padding(start = 6.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun OneHandedSidebar(
     isLeft: Boolean,
     onExpandFull: () -> Unit
 ) {
     Column(
         modifier = Modifier
-            .width(48.dp)
-            .height(260.dp)
+            .width(46.dp)
+            .height(230.dp)
             .background(TerminalSurface)
             .border(1.dp, TerminalBorder)
             .clickable(onClick = onExpandFull)
@@ -1104,7 +1202,7 @@ private fun OneHandedSidebar(
 }
 
 @Composable
-private fun SubtleDivider() {
+private fun ThinDivider() {
     Box(
         modifier = Modifier
             .fillMaxWidth()

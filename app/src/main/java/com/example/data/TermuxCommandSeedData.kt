@@ -847,7 +847,7 @@ object TermuxCommandSeedData {
             ClipboardEntity(
                 text = "opencode run \"fix build errors and run tests\"",
                 label = "OpenCode Auto-Fix Prompt",
-                copiedTimestamp = now - 25_000L,
+                copiedTimestamp = now - 20_000L,
                 usageCount = 6,
                 lastUsedTimestamp = now - 35_000L,
                 isPinned = true
@@ -855,7 +855,7 @@ object TermuxCommandSeedData {
             ClipboardEntity(
                 text = "git status && git diff --stat",
                 label = "Git Quick Inspect",
-                copiedTimestamp = now - 40_000L,
+                copiedTimestamp = now - 30_000L,
                 usageCount = 5,
                 lastUsedTimestamp = now - 55_000L,
                 isPinned = false
@@ -863,7 +863,7 @@ object TermuxCommandSeedData {
             ClipboardEntity(
                 text = "opencode --model anthropic/claude-3-7-sonnet",
                 label = "OpenCode Sonnet Flag",
-                copiedTimestamp = now - 90_000L,
+                copiedTimestamp = now - 40_000L,
                 usageCount = 4,
                 lastUsedTimestamp = now - 95_000L,
                 isPinned = false
@@ -871,9 +871,89 @@ object TermuxCommandSeedData {
             ClipboardEntity(
                 text = "ssh -p 8022 u0_a245@192.168.1.100",
                 label = "Termux Local SSH",
-                copiedTimestamp = now - 140_000L,
+                copiedTimestamp = now - 50_000L,
                 usageCount = 3,
                 lastUsedTimestamp = now - 150_000L,
+                isPinned = false
+            ),
+            ClipboardEntity(
+                text = "cd ~/projects && ls -la",
+                label = "Open Projects Workspace",
+                copiedTimestamp = now - 60_000L,
+                usageCount = 4,
+                lastUsedTimestamp = now - 160_000L,
+                isPinned = false
+            ),
+            ClipboardEntity(
+                text = "python3 -m venv .venv && source .venv/bin/activate",
+                label = "Python Virtualenv",
+                copiedTimestamp = now - 70_000L,
+                usageCount = 3,
+                lastUsedTimestamp = now - 170_000L,
+                isPinned = false
+            ),
+            ClipboardEntity(
+                text = "npm install && npm run dev",
+                label = "Node Dev Server",
+                copiedTimestamp = now - 80_000L,
+                usageCount = 3,
+                lastUsedTimestamp = now - 180_000L,
+                isPinned = false
+            ),
+            ClipboardEntity(
+                text = "claude --continue",
+                label = "Resume Claude Session",
+                copiedTimestamp = now - 90_000L,
+                usageCount = 2,
+                lastUsedTimestamp = now - 190_000L,
+                isPinned = false
+            ),
+            ClipboardEntity(
+                text = "kimi chat --model moonshot-v1-128k",
+                label = "Kimi 128k Chat",
+                copiedTimestamp = now - 100_000L,
+                usageCount = 2,
+                lastUsedTimestamp = now - 200_000L,
+                isPinned = false
+            ),
+            ClipboardEntity(
+                text = "termux-setup-storage",
+                label = "Storage Permission",
+                copiedTimestamp = now - 110_000L,
+                usageCount = 2,
+                lastUsedTimestamp = now - 210_000L,
+                isPinned = false
+            ),
+            ClipboardEntity(
+                text = "adb pair 127.0.0.1:39451",
+                label = "Wireless ADB Pair",
+                copiedTimestamp = now - 120_000L,
+                usageCount = 1,
+                lastUsedTimestamp = now - 220_000L,
+                isPinned = false
+            ),
+            ClipboardEntity(
+                text = "tmux new -s dev",
+                label = "Start Tmux Session",
+                copiedTimestamp = now - 130_000L,
+                usageCount = 2,
+                lastUsedTimestamp = now - 230_000L,
+                isPinned = false
+            ),
+            ClipboardEntity(
+                text = "curl -sL https://api.github.com/zen",
+                label = "Test cURL Endpoint",
+                copiedTimestamp = now - 140_000L,
+                usageCount = 1,
+                lastUsedTimestamp = now - 240_000L,
+                isPinned = false
+            ),
+            ClipboardEntity(
+                text = "git add . && git commit -m \"feat: update\"",
+                label = "Quick Git Commit",
+                copiedTimestamp = now - 150_000L,
+                usageCount = 3,
+                lastUsedTimestamp = now - 250_000L,
                 isPinned = false
             )
         )
